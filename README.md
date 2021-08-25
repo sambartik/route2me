@@ -1,3 +1,5 @@
+[![Build Image](https://github.com/SamuelBartik/route2me/actions/workflows/BuildImage.yml/badge.svg?branch=master)](https://github.com/SamuelBartik/route2me/actions/workflows/BuildImage.yml)
+
 # Route2Me - Keeps your containers connected to wireguard
 This docker mod helps you with keeping all desired containers connected to your wireguard container. You won't need to recreate all your dependant containers manually after making a change in the wireguard container configuration. This mod will all handle that for you.
 
