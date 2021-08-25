@@ -1,0 +1,12 @@
+#!/usr/bin/with-contenv bash
+
+echo "**** Installing python and curl ****"
+apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    curl
+
+echo "**** Installing required python modules ****"
+pip3 install requests-unixsocket
+
+exit 0
