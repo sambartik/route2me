@@ -1,20 +1,20 @@
 [![Build Image](https://github.com/SamuelBartik/route2me/actions/workflows/BuildImage.yml/badge.svg?branch=master)](https://github.com/SamuelBartik/route2me/actions/workflows/BuildImage.yml)
 
 # Route2Me - Keeps your containers connected to wireguard
-This docker mod helps you with keeping all desired containers connected to your wireguard container. You won't need to recreate all your dependant containers manually after making a change in the wireguard container configuration. This mod will all handle that for you.
+This docker mod helps you with keeping all desired containers connected to your wireguard container. You won't need to recreate all your dependent containers manually after making a change in the wireguard container configuration. This mod will all handle that for you.
 
 # How does it work?
-The mod works by running a service after startup which checks all dependant containers and their configured network_mode value. If they don't refer to wireguard container or the data is outdated, the dependant container will get recreated with similiar tweaked configuration that now makes it able to route traffic through wireguard container.
+The mod works by running a service after startup which checks all dependent containers and their configured network_mode value. If they don't refer to wireguard container or the data is outdated, the dependent container will get recreated with a similar tweaked configuration that now makes it able to route traffic through wireguard container.
 
-Optionally you can set a timeout value that will perform the same check again as stated above.
+Optionally, you can set a timeout value that will perform the same check again as stated above.
 
 > From my experience there was also a need to restart all dependant containers if ever wireguard container got restarted without changing its ID. Because of that I decided to do it in a mod as well. 
 
 
 # Configuration
-First of all, you need to give the wireguard container read-only access to ``docker.sock`` file in order to allow this to work. The mod is configurable via two ways: enviroment variables and labels:
+First, you need to give the wireguard container read-only access to ``docker.sock`` file in order to allow this to work. The mod is configurable via two ways: environment variables and labels:
 
-### Enviroment variables
+### Environment variables
 You set them on the wireguard container. They are all optional:
 
 | Variable | Default      | Definition |
@@ -26,7 +26,7 @@ You set them on the wireguard container. They are all optional:
 | R2M_HEALTHCHECK | ``False`` | Wait until the wireguard container becomes healthy. Only then begin the checks. If true, you **WILL NEED** to specify ``healtcheck`` manually in the container configuration!| 
 
 ### Labels
-Add the ``com.route2me.slave`` label to all dependant containers that you wish to check. The wireguard container will be found automatically if its hostname corresponds to its container ID. If you have changed hostname of a wireguard container to custom value, you need to add the ``com.route2me.master`` label to it as well.
+Add the ``com.route2me.slave`` label to all dependent containers that you wish to check. The wireguard container will be found automatically if its hostname corresponds to its container ID. If you have changed the hostname of a wireguard container to a custom value, you need to add the ``com.route2me.master`` label to it as well.
 
 > NOTE: All dependant containers need to be started before the wireguard container. You can achieve this by ``depends_on`` in ``docker-compose.yml``.
 
