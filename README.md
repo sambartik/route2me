@@ -8,6 +8,9 @@ The mod works by running a service after startup which checks all dependant cont
 
 Optionally you can set a timeout value that will perform the same check again as stated above.
 
+> From my experience there was also a need to restart all dependant containers if ever wireguard container got restarted without changing its ID. Because of that I decided to do it in a mod as well. 
+
+
 # Configuration
 First of all, you need to give the wireguard container read-only access to ``docker.sock`` file in order to allow this to work. The mod is configurable via two ways: enviroment variables and labels:
 
@@ -16,11 +19,11 @@ You set them on the wireguard container. They are all optional:
 
 | Variable | Default      | Definition |
 | -------- | ------------ | ---------- |
-| R2M_DOCKER_SOCK | /var/run/docker.sock | Path to ``docker.sock`` file |
-| R2M_TIMEOUT | -1 | Number of seconds to wait before performing another check. Enter ``-1`` to run check only once, after the wireguard container has started. |
-| R2M_LOG_PATH | /config/logs/route2me.log | Path to a file to log to.|
-| R2M_LOG_LEVEL | INFO | Set minimal level that should be logged to the file. Possible values: ``CRITICAL``, ``ERROR``, ``WARNING``, ``INFO``, ``DEBUG``, ``NOTSET`` |
-| R2M_HEALTHCHECK | False | Wait until the wireguard container becomes healthy. Only then begin the checks. If true, you **WILL NEED** to specify ``healtcheck`` manually in the container configuration!| 
+| R2M_DOCKER_SOCK | ``/var/run/docker.sock`` | Path to ``docker.sock`` file |
+| R2M_TIMEOUT | ``-1`` | Number of seconds to wait before performing another check. Enter ``-1`` to run check only once, after the wireguard container has started. |
+| R2M_LOG_PATH | ``/config/logs/route2me.log`` | Path to a file to log to.|
+| R2M_LOG_LEVEL | ``INFO`` | Set minimal level that should be logged to the file. Possible values: ``CRITICAL``, ``ERROR``, ``WARNING``, ``INFO``, ``DEBUG``, ``NOTSET`` |
+| R2M_HEALTHCHECK | ``False`` | Wait until the wireguard container becomes healthy. Only then begin the checks. If true, you **WILL NEED** to specify ``healtcheck`` manually in the container configuration!| 
 
 ### Labels
 Add the ``com.route2me.slave`` label to all dependant containers that you wish to check. The wireguard container will be found automatically if its hostname corresponds to its container ID. If you have changed hostname of a wireguard container to custom value, you need to add the ``com.route2me.master`` label to it as well.
@@ -84,4 +87,6 @@ services:
       - wireguard # <--- Required
     labels:
       - com.route2me.slave # <--- Required
-    restart: unless-stopped```
+    restart: unless-stopped
+```
+    
