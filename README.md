@@ -22,7 +22,7 @@ You set them on the wireguard container. They are all optional:
 | R2M_DOCKER_SOCK | ``/var/run/docker.sock`` | Path to ``docker.sock`` file |
 | R2M_TIMEOUT | ``-1`` | Number of seconds to wait before performing another check. Enter ``-1`` to run check only once, after the wireguard container has started. |
 | R2M_LOG_PATH | ``/config/logs/route2me.log`` | Path to a file to log to.|
-| R2M_LOG_LEVEL | ``INFO`` | Set minimal level that should be logged to the file. Possible values: ``CRITICAL``, ``ERROR``, ``WARNING``, ``INFO``, ``DEBUG``, ``NOTSET`` |
+| R2M_LOG_LEVEL | ``INFO`` | Set minimal level that should be logged to the file. Possible values: ``CRITICAL``, ``ERROR``, ``WARNING``, ``INFO``, ``DEBUG`` |
 | R2M_HEALTHCHECK | ``False`` | Wait until the wireguard container becomes healthy. Only then begin the checks. If true, you **WILL NEED** to specify ``healtcheck`` manually in the container configuration!| 
 
 ### Labels
