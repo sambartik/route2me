@@ -14,7 +14,8 @@ DOCKER_SOCK = os.environ["R2M_DOCKER_SOCK"] if "R2M_DOCKER_SOCK" in os.environ e
 # Timeout until next check.
 TIMEOUT = int(os.environ["R2M_TIMEOUT"]) if "R2M_TIMEOUT" in os.environ else -1
 
-HEALTHCHECK = bool(os.environ["R2M_HEALTHCHECK"]) if "R2M_HEALTHCHECK" in os.environ else False
+# Whether to wait for master container to be healthy.
+HEALTHCHECK = os.environ["R2M_HEALTHCHECK"].upper() == "TRUE" if "R2M_HEALTHCHECK" in os.environ else False
 
 # Path to log file.
 LOG_PATH = os.environ["R2M_LOG_PATH"] if "R2M_LOG_PATH" in os.environ else "/config/logs/route2me.log"
