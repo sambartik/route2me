@@ -217,10 +217,13 @@ class Container:
         blueprint["HostConfig"] = rtInfo["HostConfig"]
         blueprint["NetworkingConfig"] = {}
         blueprint["NetworkingConfig"]["EndpointsConfig"] = rtInfo["NetworkSettings"]["Networks"]
-
-        del blueprint["Hostname"]
-        del blueprint["Domainname"]
-        del blueprint["ExposedPorts"]
+        
+        if("Hostname" in blueprint):
+            del blueprint["Hostname"]
+        if("Domainname" in blueprint):
+            del blueprint["Domainname"]
+        if("ExposedPorts" in blueprint):
+            del blueprint["ExposedPorts"]
 
         return blueprint
 
