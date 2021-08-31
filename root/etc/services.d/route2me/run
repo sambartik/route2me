@@ -214,17 +214,22 @@ class Container:
     def getBlueprintCfg(self):
         rtInfo = self.getRtInfo()
 
+        # Restructure the runtime information into a config that can be used to
+        # create a new container with similar configuration.
         blueprint = rtInfo["Config"]
         blueprint["HostConfig"] = rtInfo["HostConfig"]
-        blueprint["NetworkingConfig"] = {}
-        blueprint["NetworkingConfig"]["EndpointsConfig"] = rtInfo["NetworkSettings"]["Networks"]
-        
+
+        # Let docker generate hostname by itself
         if("Hostname" in blueprint):
             del blueprint["Hostname"]
-        if("Domainname" in blueprint):
-            del blueprint["Domainname"]
+
+        # Remove conflicting options
+        if("NetworkingConfig" in blueprint):
+            del blueprint["NetworkingConfig"]
         if("ExposedPorts" in blueprint):
             del blueprint["ExposedPorts"]
+        if("PortBindings" in blueprint["HostConfig"]):
+            del blueprint["HostConfig"]["PortBindings"]
 
         return blueprint
 
