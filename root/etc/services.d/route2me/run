@@ -304,3 +304,4 @@ except:
     logging.critical("Whoops, something went wrong! >:(")
     logging.critical(str(sys.exc_info()[0]) + ": " + str(sys.exc_info()[1]))
     logging.debug("Traceback:\n" + str(traceback.format_exc()))
+    time.sleep(300) # 5 minutes
