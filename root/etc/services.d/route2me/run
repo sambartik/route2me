@@ -65,6 +65,8 @@ def req(verb, endpoint, data=None, params=None):
                                 data=data, params=params, headers=req_headers)
         res.raise_for_status()
 
+        logging.trace("Response: " + str(res.text))
+        
         return res.json()
 
     except json.JSONDecodeError:
@@ -292,7 +294,7 @@ try:
             if (slave.networkMode != "container:" + masterContainer.id):
                 logging.info("Re-creating: " + str(slave) + "...")
                 newSlave = slave.recreate(masterContainer.id)
-                logging.debug("Slave recreated: " + str(newSlave))
+                logging.info("Successfully re-created: " + str(newSlave))
             else:
                 logging.info("Restarting: " + str(slave) + "...")
                 slave.restart()
@@ -307,7 +309,7 @@ try:
             # wait ridiculously long so it looks like the script ran only once.
             time.sleep(31557600) # 1 year
 except:
-    logging.critical("Whoops, something went wrong! >:(")
+    logging.critical("Whoops, something went wrong! Retrying in 5 minutes... >:(")
     logging.critical(str(sys.exc_info()[0]) + ": " + str(sys.exc_info()[1]))
-    logging.debug("Traceback:\n" + str(traceback.format_exc()))
+    logging.trace("Traceback:\n" + str(traceback.format_exc()))
     time.sleep(300) # 5 minutes
