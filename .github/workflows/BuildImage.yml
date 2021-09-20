@@ -3,7 +3,8 @@ name: Build Image
 on: [push, pull_request, workflow_dispatch]
 
 env:
-  ENDPOINT: "sambartik/route2me"
+  GH_ENDPOINT: "sambartik/route2me"
+  DH_ENDPOINT: "samuelbartik/route2me"
   BRANCH: "master"
 
 jobs:
@@ -18,10 +19,10 @@ jobs:
       - name: Tag image
         if: ${{ github.ref == format('refs/heads/{0}', env.BRANCH) }}
         run: |
-          docker tag ${{ github.sha }} ${ENDPOINT}:latest
-          docker tag ${{ github.sha }} ${ENDPOINT}:${{ github.sha }}
-          docker tag ${{ github.sha }} ghcr.io/${ENDPOINT}:latest
-          docker tag ${{ github.sha }} ghcr.io/${ENDPOINT}:${{ github.sha }}
+          docker tag ${{ github.sha }} ${GH_ENDPOINT}:latest
+          docker tag ${{ github.sha }} ${GH_ENDPOINT}:${{ github.sha }}
+          docker tag ${{ github.sha }} ghcr.io/${GH_ENDPOINT}:latest
+          docker tag ${{ github.sha }} ghcr.io/${GH_ENDPOINT}:${{ github.sha }}
       - name: Credential check
         if: ${{ github.ref == format('refs/heads/{0}', env.BRANCH) }}
         run: |
@@ -42,8 +43,8 @@ jobs:
       - name: Push tags to GitHub Container Registry
         if: ${{ github.ref == format('refs/heads/{0}', env.BRANCH) && env.CR_USER && env.CR_PAT }}
         run: |
-          docker push ghcr.io/${ENDPOINT}:${{ github.sha }}
-          docker push ghcr.io/${ENDPOINT}:latest
+          docker push ghcr.io/${GH_ENDPOINT}:${{ github.sha }}
+          docker push ghcr.io/${GH_ENDPOINT}:latest
       - name: Login to DockerHub
         if: ${{ github.ref == format('refs/heads/{0}', env.BRANCH) && env.DOCKERUSER && env.DOCKERPASS }}
         run: |
@@ -51,5 +52,5 @@ jobs:
       - name: Push tags to DockerHub
         if: ${{ github.ref == format('refs/heads/{0}', env.BRANCH) && env.DOCKERUSER && env.DOCKERPASS }}
         run: |
-          docker push ${ENDPOINT}:${{ github.sha }}
-          docker push ${ENDPOINT}:latest
+          docker push ${DH_ENDPOINT}:${{ github.sha }}
+          docker push ${DH_ENDPOINT}:latest
