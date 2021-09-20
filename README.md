@@ -8,7 +8,7 @@ The mod works by running a service after startup which checks all dependent cont
 
 Optionally, you can set a timeout value that will perform the same check again as stated above.
 
-> From my experience there was also a need to restart all dependant containers if ever wireguard container got restarted without changing its ID. Because of that I decided to enable this behaviour by setting ``R2M_RESTART_CORRECT`` enviroment variable accordingly. 
+> From my experience there was also a need to restart all dependant containers if ever wireguard container got restarted without changing its ID. This is the reason why ``R2M_RESTART_CORRECT`` is set to ``True`` by default.
 
 
 # Configuration
@@ -24,7 +24,7 @@ You set them on the wireguard container. They are all optional:
 | R2M_LOG_PATH | ``/config/logs/route2me.log`` | Path to a file to log to.|
 | R2M_LOG_LEVEL | ``INFO`` | Set minimal level that should be logged to the file. Possible values: ``CRITICAL``, ``ERROR``, ``WARNING``, ``INFO``, ``DEBUG`` |
 | R2M_HEALTHCHECK | ``False`` | Wait until the wireguard container becomes healthy. Only then begin the checks. If true, you **WILL NEED** to specify ``healtcheck`` manually in the container configuration!|
-| R2M_RESTART_CORRECT | ``False`` | Should slave containers that have correct NetworkMode set up be restarted after wireguard container (re)start? Set to ``True`` if you experience problems after restarting wireguard container. |
+| R2M_RESTART_CORRECT | ``True`` | Should slave containers that have correct NetworkMode set up be restarted after wireguard container (re)start? |
 
 ### Labels
 Add the ``com.route2me.slave`` label to all dependent containers that you wish to check. The wireguard container will be found automatically if its hostname corresponds to its container ID. If you have changed the hostname of a wireguard container to a custom value, you need to add the ``com.route2me.master`` label to it as well.

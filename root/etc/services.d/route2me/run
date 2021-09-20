@@ -24,7 +24,7 @@ LOG_PATH = os.environ["R2M_LOG_PATH"] if "R2M_LOG_PATH" in os.environ else "/con
 LOG_LEVEL = os.environ["R2M_LOG_LEVEL"].upper() if "R2M_LOG_LEVEL" in os.environ else "INFO"
 
 # Whether to restart slave containers even if they have correct NetworkMode set up.
-RESTART_CORRECT = os.environ["R2M_RESTART_CORRECT"].upper() == "TRUE" if "R2M_RESTART_CORRECT" in os.environ else False
+RESTART_CORRECT = os.environ["R2M_RESTART_CORRECT"].upper() == "TRUE" if "R2M_RESTART_CORRECT" in os.environ else True
 
 # Same as LOG_LEVEL but stores an enum instead of a string.
 _LOGGING_LEVEL = None
