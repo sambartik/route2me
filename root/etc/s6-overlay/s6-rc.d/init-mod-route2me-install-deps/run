@@ -1,0 +1,9 @@
+#!/usr/bin/with-contenv bash
+
+echo "**** Adding python and curl as repo dependencies ****"
+echo "python3" >> /mod-repo-packages-to-install.list
+echo "python3-pip" >> /mod-repo-packages-to-install.list
+echo "curl" >> /mod-repo-packages-to-install.list
+
+echo "**** Adding requests-unixsocket as pip dependency ****"
+echo "requests-unixsocket" >> /mod-pip-packages-to-install.list

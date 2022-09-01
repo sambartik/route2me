@@ -1,0 +1,319 @@
+#!/usr/bin/with-contenv python3
+
+import os
+import sys
+import time
+import json
+import logging
+import traceback
+import requests_unixsocket as unix_sock
+
+# Path to docker.sock unix socket file.
+DOCKER_SOCK = os.environ["R2M_DOCKER_SOCK"] if "R2M_DOCKER_SOCK" in os.environ else "/var/run/docker.sock"
+
+# Timeout until next check.
+TIMEOUT = int(os.environ["R2M_TIMEOUT"]) if "R2M_TIMEOUT" in os.environ else -1
+
+# Whether to wait for master container to be healthy.
+HEALTHCHECK = os.environ["R2M_HEALTHCHECK"].upper() == "TRUE" if "R2M_HEALTHCHECK" in os.environ else False
+
+# Path to log file.
+LOG_PATH = os.environ["R2M_LOG_PATH"] if "R2M_LOG_PATH" in os.environ else "/config/logs/route2me.log"
+
+# The minimum log lebel for a log entry to be written to the log file.
+LOG_LEVEL = os.environ["R2M_LOG_LEVEL"].upper() if "R2M_LOG_LEVEL" in os.environ else "INFO"
+
+# Whether to restart slave containers even if they have correct NetworkMode set up.
+RESTART_CORRECT = os.environ["R2M_RESTART_CORRECT"].upper() == "TRUE" if "R2M_RESTART_CORRECT" in os.environ else True
+
+# Same as LOG_LEVEL but stores an enum instead of a string.
+_LOGGING_LEVEL = None
+# Set _LOGGING_LEVEL to the enum corresponding to the given string.
+if LOG_LEVEL == "CRITICAL":
+  _LOGGING_LEVEL = logging.CRITICAL
+elif LOG_LEVEL == "ERROR":
+  _LOGGING_LEVEL = logging.ERROR
+elif LOG_LEVEL == "WARNING":
+  _LOGGING_LEVEL = logging.WARNING
+elif LOG_LEVEL == "INFO":
+  _LOGGING_LEVEL = logging.INFO
+elif LOG_LEVEL == "DEBUG":
+  _LOGGING_LEVEL = logging.DEBUG
+else:
+  _LOGGING_LEVEL = logging.NOTSET
+  
+
+# Create all subdirectories to LOG_PATH if they don't exist.
+os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
+
+# Configure logging
+logging.basicConfig(filename=LOG_PATH,
+                    format='%(asctime)s %(levelname)-8s %(message)s', 
+                    datefmt='%Y-%m-%d %H:%M:%S', level=_LOGGING_LEVEL)
+
+# Make a request to the Docker Engine API
+def req(verb, endpoint, data=None, params=None):
+    verb = verb.upper()
+    req_headers = {
+        'Content-Type': "application/json"
+    }
+
+    logging.debug("Making a " + verb + " request to " + endpoint)
+    logging.debug("Params: " + str(params))
+    logging.debug("Data: " + str(data))
+
+    try:
+        res = unix_sock.request(verb, "http+unix://" + DOCKER_SOCK.replace("/", "%2F") + endpoint, 
+                                data=data, params=params, headers=req_headers)
+        res.raise_for_status()
+
+        
+        return res.json()
+
+    except json.JSONDecodeError:
+        return {}
+
+    except unix_sock.requests.exceptions.ConnectionError:
+        logging.error(
+            "A connection error occured while trying to connect to: [" + verb + "] " + endpoint)
+
+    except unix_sock.requests.exceptions.HTTPError:
+        logging.error("An HTTP error occured: [" + verb + "] " + endpoint)
+
+    except:
+        logging.error(
+            "An unexpected error occured during the processing of request: [" + verb + "] " + endpoint)
+
+    return None
+
+
+# Class that interacts with the Docker Engine API and handles the containers
+class ContainerManager:
+
+    # Returns list of all Container objects. If slaves is set to True, it will return only containers that are slaves.
+    @staticmethod
+    def getAll(labels=None, names=None):
+        filters = {
+            "label": labels if labels else [],
+            "name": names if names else []
+        }
+
+        params = {
+            "all": True,
+            "filters": json.dumps(filters)
+        }
+
+        results = req("GET", "/containers/json", params=params)
+
+        containers = []
+        for result in results:
+            id = result["Id"]
+            name = result["Names"][0][1:]
+            networkMode = result["HostConfig"]["NetworkMode"]
+
+            containers.append(Container(id, name, networkMode))
+
+        return containers
+    
+    # Return a master container object
+    @staticmethod
+    def getMaster():
+        labelled_containers = ContainerManager.getAll(labels=["com.route2me.master"]) 
+        if(len(labelled_containers) == 1):
+            return labelled_containers[0]
+        elif(len(labelled_containers) > 1):
+            raise Exception("Only 1 container can have the master container label associated.")
+        
+        logging.debug("Trying to find the master container automatically...")
+        hostname = os.uname()[1]
+        for container in ContainerManager.getAll():
+            if container.id.startswith(hostname):
+                return container
+
+        raise Exception("Couldn't find the master container!")
+
+    # Returns list of all slaves.
+    @staticmethod
+    def getSlaves():      
+        return ContainerManager.getAll(labels=["com.route2me.slave"])
+
+    # Creates and returns brand new container with specified name and configuration
+
+    @staticmethod
+    def create(name, config):
+        networkMode = config["HostConfig"]["NetworkMode"]
+        newId = req("POST", "/containers/create?name=" +
+                    name, json.dumps(config))["Id"]
+
+        logging.debug("Created new container: " + newId)
+
+        req("POST", "/containers/" + newId + "/start")
+        return Container(newId, name, networkMode)
+
+    # Stop container by ID
+
+    @staticmethod
+    def stop(id):
+        logging.debug("Stopping container: " + id + "...")
+
+        req("POST", "/containers/" + id + "/stop")
+
+        return True
+
+    # Start container by ID
+    @staticmethod
+    def start(id):
+        logging.debug("Starting container: " + id + "...")
+
+        req("POST", "/containers/" + id + "/start")
+
+        return True
+
+    # Stop and delete container by ID
+
+    @staticmethod
+    def delete(id):
+        logging.debug("Deleting container: " + id + "...")
+        req("DELETE", "/containers/" + id)
+
+        return True
+
+    # Restart container by ID
+
+    @staticmethod
+    def restart(id):
+        logging.debug("Restarting container: " + id + "...")
+        req("POST", "/containers/" + id + "/restart")
+        return True
+
+
+# Class container that represents a docker container
+class Container:
+
+    # Initialize variables
+    def __init__(self, id, name, networkMode):
+        self.id = id
+        self.name = name
+        self.networkMode = networkMode
+
+    # Get container runtime info
+
+    def getRtInfo(self):
+        info = req("GET", "/containers/" + self.id + "/json")
+
+        return info
+
+    def isHealthy(self):
+        info = self.getRtInfo()
+
+        if(not "Health" in info["State"]):
+            raise Exception("No healthcheck found.")
+
+        return info["State"]["Health"]["Status"] == "healthy"
+
+    # Create a blueprint config that will be used for creating a new container
+    # with the same configuration as the current one.
+
+    def getBlueprintCfg(self):
+        rtInfo = self.getRtInfo()
+
+        # Restructure the runtime information into a config that can be used to
+        # create a new container with similar configuration.
+        blueprint = rtInfo["Config"]
+        blueprint["HostConfig"] = rtInfo["HostConfig"]
+
+        # Let docker generate hostname by itself
+        if("Hostname" in blueprint):
+            del blueprint["Hostname"]
+
+        # Remove conflicting options
+        if("NetworkingConfig" in blueprint):
+            del blueprint["NetworkingConfig"]
+        if("ExposedPorts" in blueprint):
+            del blueprint["ExposedPorts"]
+        if("PortBindings" in blueprint["HostConfig"]):
+            del blueprint["HostConfig"]["PortBindings"]
+
+        return blueprint
+
+    # Deletes current container and returns a new and similiar container with correct master ID in NetworkMode field.
+
+    def recreate(self, masterID):
+        blueprintCfg = self.getBlueprintCfg()
+        blueprintCfg["HostConfig"]["NetworkMode"] = "container:" + masterID
+
+        self.shutdown()
+
+        newContainer = ContainerManager.create(self.name, blueprintCfg)
+
+        return newContainer
+
+    # Shutdown
+
+    def shutdown(self):
+        return self.stop() and self.delete()
+
+    # Deletes current container
+
+    def stop(self):
+        return ContainerManager.stop(self.id)
+
+    # Deletes current container
+
+    def start(self):
+        return ContainerManager.start(self.id)
+
+    # Deletes current container
+
+    def delete(self):
+        return ContainerManager.delete(self.id)
+
+    # Restarts current container
+
+    def restart(self):
+        return ContainerManager.restart(self.id)
+
+    def __str__(self):
+        return "Container " + self.name + "; [ID]: " + self.id[0:12] + "; [NetworkMode]: " + self.networkMode
+
+
+#
+# Entrypoint
+#
+
+try:
+    masterContainer = ContainerManager.getMaster()
+    logging.info("Found master: " + str(masterContainer))
+
+    if(HEALTHCHECK):
+      logging.info("Waiting for master container to be healthy...")
+      while not masterContainer.isHealthy():
+          time.sleep(15)
+
+    while True:
+        for slave in ContainerManager.getSlaves():
+            if (slave.networkMode != "container:" + masterContainer.id):
+                logging.info("Re-creating: " + str(slave) + "...")
+                newSlave = slave.recreate(masterContainer.id)
+                logging.info("Successfully re-created: " + str(newSlave))
+            else:
+                if(RESTART_CORRECT):
+                    logging.info("Restarting: " + str(slave) + "...")
+                    slave.restart()
+                else:
+                    logging.info("Skipping container with correct NetworkMode: " + str(slave) + "...")
+
+        logging.info("Done.")
+        
+        
+        if(TIMEOUT > 0):
+            time.sleep(TIMEOUT)
+        else:
+            # Since services get restarted upon exit, we need to "hack it" a bit and
+            # wait ridiculously long so it looks like the script ran only once.
+            time.sleep(31557600) # 1 year
+except:
+    logging.critical("Whoops, something went wrong! Retrying in 5 minutes... >:(")
+    logging.critical(str(sys.exc_info()[0]) + ": " + str(sys.exc_info()[1]))
+    logging.debug("Traceback:\n" + str(traceback.format_exc()))
+    time.sleep(300) # 5 minutes
