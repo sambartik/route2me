@@ -1,4 +1,4 @@
-#!/usr/bin/with-contenv bash
+#!/command/with-contenv bash
 
 echo "**** Adding python and curl as repo dependencies ****"
 echo "python3" >> /mod-repo-packages-to-install.list
