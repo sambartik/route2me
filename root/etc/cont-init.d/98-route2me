@@ -1,10 +1,9 @@
 #!/usr/bin/with-contenv bash
 
-echo "**** Installing python and curl ****"
-apt-get update && apt-get install -y --no-install-recommends \
+echo "**** Installing python and pip ****"
+apk --update --no-cache add \
     python3 \
-    python3-pip \
-    curl
+    py3-pip 
 
 echo "**** Installing required python modules ****"
 pip3 install requests-unixsocket
